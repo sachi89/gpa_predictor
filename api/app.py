@@ -4,8 +4,13 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
+from flask_cors import CORS
 
 app = Flask(__name__)
+
+# enables CORS to make requests between domains on allowed routes
+# CORS(app, resources={r"/chat": {"origins": "https://gpapredictor.scali-tech.com"}})
+CORS(app)
 
 df = pd.read_csv('student_performance_data.csv')
 
@@ -55,38 +60,63 @@ def predict_gpa(input_data, model='random_forest'):
     else:
         return round(rf_model.predict(input_df)[0], 2)
 
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    prediction = None
-    readable_input = None
+@app.route('/predict', methods=['POST'])
+def predict():
+    data = request.get_json()  # Use JSON instead of form data
 
-    if request.method == 'POST':
-        form = request.form
+    if not data:
+        return {"error": "Invalid JSON payload"}, 400
+
+    try:
         user_input = {
-            'ParentalEducation': int(form['ParentalEducation']),
-            'StudyTimeWeekly': float(form['StudyTimeWeekly']),
-            'Absences': int(form['Absences']),
-            'ParentalSupport': int(form['ParentalSupport']),
-            'Tutoring': int(form['Tutoring']),
-            'Extracurricular': int(form['Extracurricular']),
-            'Sports': int(form['Sports']),
-            'Music': int(form['Music']),
-            'Volunteering': int(form['Volunteering'])
+            'ParentalEducation': int(data.get('ParentalEducation', 0)),  # Provide default value
+            'StudyTimeWeekly': float(data.get('StudyTimeWeekly', 0)),
+            'Absences': int(data.get('Absences', 0)),
+            'ParentalSupport': int(data.get('ParentalSupport', 0)),
+            'Tutoring': int(data.get('Tutoring', 0)),
+            'Extracurricular': int(data.get('Extracurricular', 0)),
+            'Sports': int(data.get('Sports', 0)),
+            'Music': int(data.get('Music', 0)),
+            'Volunteering': int(data.get('Volunteering', 0))
         }
-        prediction = predict_gpa(user_input)
-        readable_input = {
-            'Parental Education': edu_levels[form['ParentalEducation']],
-            'Study Time Weekly': f"{form['StudyTimeWeekly']} hrs",
-            'Absences': form['Absences'],
-            'Parental Support': support_levels[form['ParentalSupport']],
-            'Tutoring': yes_no[form['Tutoring']],
-            'Extracurricular': yes_no[form['Extracurricular']],
-            'Sports': yes_no[form['Sports']],
-            'Music': yes_no[form['Music']],
-            'Volunteering': yes_no[form['Volunteering']]
-        }
+    except ValueError as e:
+        return {"error": f"Invalid data type: {str(e)}"}, 400
 
-    return render_template('index.html', prediction=prediction, inputs=readable_input)
+    prediction = predict_gpa(user_input)
+
+    return {"response": prediction}
+
+    # prediction = None
+    # readable_input = None
+
+    # if request.method == 'POST':
+    #     form = request.form
+    #     user_input = {
+    #         'ParentalEducation': int(form['ParentalEducation']),
+    #         'StudyTimeWeekly': float(form['StudyTimeWeekly']),
+    #         'Absences': int(form['Absences']),
+    #         'ParentalSupport': int(form['ParentalSupport']),
+    #         'Tutoring': int(form['Tutoring']),
+    #         'Extracurricular': int(form['Extracurricular']),
+    #         'Sports': int(form['Sports']),
+    #         'Music': int(form['Music']),
+    #         'Volunteering': int(form['Volunteering'])
+    #     }
+    #     prediction = predict_gpa(user_input)
+    #     readable_input = {
+    #         'Parental Education': edu_levels[form['ParentalEducation']],
+    #         'Study Time Weekly': f"{form['StudyTimeWeekly']} hrs",
+    #         'Absences': form['Absences'],
+    #         'Parental Support': support_levels[form['ParentalSupport']],
+    #         'Tutoring': yes_no[form['Tutoring']],
+    #         'Extracurricular': yes_no[form['Extracurricular']],
+    #         'Sports': yes_no[form['Sports']],
+    #         'Music': yes_no[form['Music']],
+    #         'Volunteering': yes_no[form['Volunteering']]
+    #     }
+        # switched from rendering html form to react form
+        # return render_template('index.html', prediction=prediction, inputs=readable_input)
+        # return prediction
 
 if __name__ == '__main__':
     app.run(debug=True)
