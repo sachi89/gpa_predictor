@@ -1,0 +1,14 @@
+Reference file for Waitress configurations
+
+[Unit]
+Description=Waitress server for GPA Predictor Flask API
+After=network.target
+
+[Service]
+User=<YOUR_USER>  # Replace with actual user
+WorkingDirectory=/path/to/gpa_predictor/api  # Replace with actual path
+ExecStart=/path/to/venv/bin/waitress-serve --host=127.0.0.1 --port=5002 app:app
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
